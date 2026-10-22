@@ -1,0 +1,54 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ゲームの質問一覧</title>
+<style>
+:root{--bg:#f3f5fa;--button:#eaf0ff;--ink:#202638}*{box-sizing:border-box}body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:16px;max-width:850px;margin-inline:auto}h1{font-size:1.5rem}.item,.settings{background:white;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 2px 10px #1111}.item h2{font-size:1.05rem;margin:0 0 12px}button{font:inherit;border:1px solid #aeb8d0;border-radius:9px;background:var(--button);padding:10px 15px;margin:4px;cursor:pointer}button.danger{background:#ffe8e8}.result{margin-top:12px;border-top:1px solid #ddd;padding-top:12px}.result img{display:block;max-width:100%;max-height:420px;object-fit:contain;margin:10px 0}.muted{color:#596477;font-size:.9rem}details{margin-top:10px}input[type=text],textarea{padding:9px;width:100%;font:inherit;border:1px solid #aaa;border-radius:6px}textarea{min-height:65px}input[type=file]{max-width:100%}label{display:block;margin:12px 0 5px}.row{margin:12px 0;padding:10px;background:#f7f8fc;border-radius:9px}.comment{white-space:pre-wrap;font-weight:600}.settings label{display:inline-block;margin-right:15px}
+</style></head><body>
+<h1 id="pageTitle">ゲームの質問一覧</h1><p class="muted">質問を選ぶと結果画像と一言コメントを表示します。編集内容はこのブラウザ内に保存されます。</p>
+<section class="settings"><strong>デザイン設定</strong><label for="titleEdit">一番上の見出し</label><input type="text" id="titleEdit" placeholder="見出しを入力"><div><label>背景色 <input type="color" id="bg"></label><label>選択肢ボタンの色 <input type="color" id="buttonColor"></label></div><button id="add">＋ 質問を追加</button></section>
+<main id="list"></main>
+<script>
+'use strict';
+const KEY='game_branch_v3_custom',OLD='game_branch_v2';
+const blank=i=>({title:`質問${i+1}：内容を入力`,labels:{a:'選択肢A',b:'選択肢B'},a:'',b:'',comments:{a:'',b:''}});
+let state;
+try{state=JSON.parse(localStorage.getItem(KEY))}catch{}
+if(!state||!Array.isArray(state.questions)){
+ let previous=[];try{previous=JSON.parse(localStorage.getItem(OLD))||[]}catch{}
+ state={bg:'#f3f5fa',button:'#eaf0ff',questions:Array.from({length:Math.max(30,previous.length)},(_,i)=>({...blank(i),...(previous[i]||{})}))};
+}
+function normalize(q,i){return {...blank(i),...q,labels:{...blank(i).labels,...(q.labels||{})},comments:{...blank(i).comments,...(q.comments||{})}}}
+state.questions=state.questions.map(normalize);
+state.heading=typeof state.heading==='string'?state.heading:'ゲームの質問一覧';
+const list=document.getElementById('list');
+const titleEdit=document.getElementById('titleEdit');
+titleEdit.value=state.heading;
+document.getElementById('pageTitle').textContent=state.heading;
+titleEdit.addEventListener('input',()=>{state.heading=titleEdit.value;document.getElementById('pageTitle').textContent=state.heading;save()});
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(e){alert('保存容量が不足しています。画像を小さくするか、不要な画像を削除してください。');return false}}
+function setColors(){document.documentElement.style.setProperty('--bg',state.bg);document.documentElement.style.setProperty('--button',state.button);document.getElementById('bg').value=state.bg;document.getElementById('buttonColor').value=state.button}
+document.getElementById('bg').oninput=e=>{state.bg=e.target.value;setColors();save()};
+document.getElementById('buttonColor').oninput=e=>{state.button=e.target.value;setColors();save()};
+document.getElementById('add').onclick=()=>{state.questions.push(blank(state.questions.length));save();render();window.scrollTo(0,document.body.scrollHeight)};
+function field(parent,label,value,onchange,multi=false){const lab=document.createElement('label');lab.textContent=label;const input=document.createElement(multi?'textarea':'input');if(!multi)input.type='text';input.value=value||'';input.onchange=()=>onchange(input.value);parent.append(lab,input);return input}
+function render(){
+ list.replaceChildren();
+ state.questions.forEach((q,i)=>{
+ const card=document.createElement('section');card.className='item';
+ const title=document.createElement('h2');title.textContent=q.title;card.append(title);
+ const choices=document.createElement('div'),result=document.createElement('div');result.className='result';result.hidden=true;
+ for(const k of ['a','b']){const btn=document.createElement('button');btn.textContent=q.labels[k];btn.onclick=()=>{result.replaceChildren();const strong=document.createElement('strong');strong.textContent=q.labels[k]+' の結果';result.append(strong);if(q[k]){const img=document.createElement('img');img.src=q[k];img.alt='結果画像';result.append(img)}else{const p=document.createElement('p');p.textContent='画像はまだ登録されていません';result.append(p)}if(q.comments[k]){const p=document.createElement('p');p.className='comment';p.textContent=q.comments[k];result.append(p)}result.hidden=false};choices.append(btn)}
+ card.append(choices,result);
+ const details=document.createElement('details');const summary=document.createElement('summary');summary.textContent='この質問を編集';details.append(summary);
+ field(details,'質問文',q.title,v=>{q.title=v;title.textContent=v;save()});
+ for(const k of ['a','b']){
+ const row=document.createElement('div');row.className='row';
+ field(row,`選択肢${k.toUpperCase()}の文字`,q.labels[k],v=>{q.labels[k]=v;choices.querySelectorAll('button')[k==='a'?0:1].textContent=v;save()});
+ field(row,'画像の下に表示する一言コメント',q.comments[k],v=>{q.comments[k]=v;save()},true);
+ const label=document.createElement('label');label.textContent='結果画像を登録';const file=document.createElement('input');file.type='file';file.accept='image/*';
+ file.onchange=()=>{const f=file.files&&file.files[0];if(!f)return;const url=URL.createObjectURL(f),img=new Image();img.onload=()=>{const scale=Math.min(1,1000/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);const old=q[k];q[k]=canvas.toDataURL('image/jpeg',.7);if(!save())q[k]=old;URL.revokeObjectURL(url)};img.onerror=()=>{alert('画像を読み込めませんでした');URL.revokeObjectURL(url)};img.src=url};
+ row.append(label,file);const clear=document.createElement('button');clear.textContent='画像を削除';clear.onclick=()=>{q[k]='';save();result.hidden=true};row.append(clear);details.append(row)
+ }
+ const del=document.createElement('button');del.className='danger';del.textContent='この質問を削除';del.onclick=()=>{if(confirm('この質問を削除しますか？')){state.questions.splice(i,1);save();render()}};details.append(del);card.append(details);list.append(card);
+ });
+}
+setColors();render();
+</script></body></html>
