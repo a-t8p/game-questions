@@ -1,350 +1,1552 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>モンスター図鑑</title>
-<style>
-body{
-  font-family:sans-serif;
-  background:#f3f9f1;
-  max-width:960px;
-  margin:auto;
-  padding:15px;
-}
-h1{ text-align:center; margin-top:8px; }
-#search{
-  width:100%;
-  padding:10px;
-  margin-bottom:15px;
-  border-radius:8px;
-  border:1px solid #ccc;
-  font-size:16px;
-}
-.card{
-  background:white;
-  border-radius:12px;
-  padding:14px;
-  margin-bottom:14px;
-  box-shadow:0 2px 8px rgba(0,0,0,.15);
-}
-.stats{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin:10px 0;
-  font-size:0.95rem;
-}
-.category{
-  margin:12px 0 4px;
-  font-weight:700;
-  padding:6px 10px;
-  border-radius:8px;
-  color:#222;
-  font-size:0.95rem;
-}
-.cat-physical { background:#f5c6c6; }
-.cat-magic    { background:#e0b0ff; }
-.cat-buff     { background:#e6e6a0; }
-.cat-debuff   { background:#a8c8f0; }
-.cat-status   { background:#d0b0e8; }
-.cat-recovery { background:#b0e0b0; }
-.skills{
-  margin-bottom:6px;
-}
-.skill{
-  background:#eef;
-  padding:4px 8px;
-  margin:3px;
-  border-radius:6px;
-  display:inline-block;
-  font-size:0.9rem;
-}
-button{
-  margin:4px 4px 4px 0;
-  padding:8px 12px;
-  border-radius:8px;
-  border:1px solid #aaa;
-  background:#fff;
-  cursor:pointer;
-}
-.add-btn{
-  background:#e8ffe8;
-  border-color:#8bc88b;
-  font-weight:600;
-  padding:10px 16px;
-}
-.back-btn{
-  display:inline-block;
-  margin-bottom:12px;
-  padding:10px 16px;
-  background:#e8f0ff;
-  border:1px solid #aeb8d0;
-  border-radius:10px;
-  text-decoration:none;
-  color:#202638;
-  font-weight:600;
-}
-.back-btn:hover{ background:#dce8ff; }
-.edit-area{
-  background:#f9f9f9;
-  border-radius:8px;
-  padding:10px;
-  margin-top:8px;
-  font-size:0.9rem;
-}
-.edit-area input, .edit-area textarea{
-  padding:6px;
-  margin:3px 0;
-  width:100%;
-  max-width:100%;
-  border-radius:6px;
-  border:1px solid #ccc;
-  font:inherit;
-}
-.edit-area textarea{ min-height:60px; }
- .monster-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 16px}
- .monster-name-btn{background:#e8f0ff;border:1px solid #9ab7ef;color:#203d71;font-weight:700;padding:11px 17px}
- .monster-name-btn.active{background:#4675c8;color:white}
- .result-count{font-size:.9rem;color:#536173;margin:8px 0}
-</style>
-</head>
-<body>
-
-<a class="back-btn" href="index.html">← 選択イベント一覧に戻る</a>
-
-<h1>📖 モンスター図鑑</h1>
-
-<button class="add-btn" onclick="addMonster()">＋ モンスターを追加</button>
-
-<input id="search" placeholder="🔎 スキル名・モンスター名で検索" oninput="render()">
-
-<div id="list"></div>
-
-<script>
-const CATEGORIES = [
-  { key: "physical",  label: "物理攻撃",     css: "cat-physical" },
-  { key: "magic",     label: "魔法攻撃",     css: "cat-magic" },
-  { key: "buff",      label: "バフスキル",   css: "cat-buff" },
-  { key: "debuff",    label: "デバフスキル", css: "cat-debuff" },
-  { key: "status",    label: "状態異常",     css: "cat-status" },
-  { key: "recovery",  label: "回復", css: "cat-recovery" }
-];
-
-// 全スキルのデフォルト一覧（新規追加時にコピーする）
-const DEFAULT_SKILLS = {
-  physical: [
-    "だいちのいかり", "つきくずし", "ガオガオスラッシュ", "ナイトメア",
-    "ニャンニャンドレイン", "ムシアッチ", "するどいキバ", "ドリルスピン", "おしつぶし"
-  ],
-  magic: [
-    "ハナカグラ", "ファイア", "ギガファイア", "アイース",
-    "ギガアイース", "サンダ", "ギガサンダ"
-  ],
-  buff: [
-    "カチムキン", "モード・バリア", "ムキムキン", "バキバキン", "カチコチン",
-    "ガチガチン", "キビキビン", "シュビシュビン", "ピタピタン", "バチバチン",
-    "ズバズバン", "ズドズドン", "フニャムキン", "ポヨポヨン", "プヨプヨン",
-    "カシコイン", "インテリン"
-  ],
-  debuff: [
-    "フニャリズム", "ユルミノウタ", "ダウナースロット", "じゃれアッチ",
-    "フニャルト", "フニャフニャルト", "シオルト", "シオシオルト",
-    "オソルト", "オソオソルト", "ブレルト", "ブレブレルト",
-    "ポヤルト", "ポヤポヤルト", "カサルト", "カサカサルト"
-  ],
-  status: [
-    "カナシバルト", "シビルト", "ピヨルト", "ドクルト"
-  ],
-  recovery: [
-    "おやつのじかん", "ぷるぷるカウンター", "リフレシュ", "チョーリフレシュ"
-  ]
-};
-
-function cloneSkills(){
-  const copy = {};
-  for(const key in DEFAULT_SKILLS){
-    copy[key] = [...DEFAULT_SKILLS[key]];
-  }
-  return copy;
-}
-
-let monsters = [
-  {
-    name: "スラポン",
-    comment: "",
-    image: "",
-    stats: { hp:14, atk:12, def:6, spd:10 },
-    skills: cloneSkills()
-  },
-  {
-    name: "オーク",
-    comment: "",
-    image: "",
-    stats: { hp:20, atk:18, def:4, spd:2 },
-    skills: {
-      physical: ["するどいキバ", "おしつぶし"],
-      magic: ["サンダ", "ギガサンダ"],
-      buff: [],
-      debuff: [],
-      status: [],
-      recovery: []
+{
+  "version": 1,
+  "monsters": [
+    {
+      "name": "すべてのスキル一覧",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 0,
+        "atk": 0,
+        "def": 0,
+        "spd": 0
+      },
+      "skills": {
+        "physical": [
+          "だいちのいかり",
+          "つきくずし",
+          "ガオガオスラッシュ",
+          "ナイトメア",
+          "ニャンニャンドレイン",
+          "ムシアッチ",
+          "するどいキバ",
+          "ドリルスピン",
+          "おしつぶし",
+          "ぷるぷるカウンター"
+        ],
+        "magic": [
+          "ハナカグラ",
+          "ファイーア",
+          "ギガファイーア",
+          "アイース",
+          "ギガアイース",
+          "サンーダ",
+          "ギガサンーダ"
+        ],
+        "buff": [
+          "カチムキン",
+          "モード・バリア",
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ズバズバン",
+          "ズドズドン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャリズム",
+          "ユルミノウタ",
+          "ダウナースロット",
+          "じゃれアッチ",
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "カナシバルト",
+          "シビルト",
+          "ピヨルト",
+          "ドクルト"
+        ],
+        "recovery": [
+          "おやつのじかん",
+          "ぷるぷるカウンター",
+          "リフレシュ",
+          "チョーリフレシュ"
+        ]
+      }
+    },
+    {
+      "name": "オーク",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 20,
+        "atk": 18,
+        "def": 4,
+        "spd": 2
+      },
+      "skills": {
+        "physical": [
+          "するどいキバ",
+          "おしつぶし"
+        ],
+        "magic": [
+          "サンーダ",
+          "ギガサンーダ"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "覚えません"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "スラポン",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 14,
+        "atk": 12,
+        "def": 6,
+        "spd": 10
+      },
+      "skills": {
+        "physical": [
+          "おしつぶし"
+        ],
+        "magic": [
+          "アイース",
+          "ギガアイース"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ズバズバン",
+          "ズドズドン",
+          "ポヨポヨン",
+          "ブヨブヨ",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャリズム",
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "シビルト"
+        ],
+        "recovery": [
+          "リフレシュ",
+          "チョーリフレシュ"
+        ]
+      }
+    },
+    {
+      "name": "ガーゴィ",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 13,
+        "atk": 14,
+        "def": 7,
+        "spd": 16
+      },
+      "skills": {
+        "physical": [
+          "するどいキバ"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア"
+        ],
+        "buff": [
+          "モード・バリア",
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "ドクルト"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "ミラナイト",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 11,
+        "atk": 20,
+        "def": 11,
+        "spd": 5
+      },
+      "skills": {
+        "physical": [
+          "するどいキバ",
+          "ドリルスピン"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア"
+        ],
+        "buff": [
+          "カチムキン",
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "覚えません"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "ブル太ライダー",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 10,
+        "atk": 10,
+        "def": 5,
+        "spd": 5
+      },
+      "skills": {
+        "physical": [
+          "ドリルスピン"
+        ],
+        "magic": [
+          "サンーダ",
+          "ギガサンーダ"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ズバズバン",
+          "ズドズドン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "ピヨルト"
+        ],
+        "recovery": [
+          "リフレシュ",
+          "チョーリフレシュ"
+        ]
+      }
+    },
+    {
+      "name": "ワルビット",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 14,
+        "atk": 12,
+        "def": 8,
+        "spd": 9
+      },
+      "skills": {
+        "physical": [
+          "するどいキバ"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "覚えません"
+        ],
+        "recovery": [
+          "リフレシュ",
+          "チョーリフレシュ"
+        ]
+      }
+    },
+    {
+      "name": "マホビット",
+      "comment": "アジビ",
+      "image": "",
+      "stats": {
+        "hp": 15,
+        "atk": 11,
+        "def": 7,
+        "spd": 8
+      },
+      "skills": {
+        "physical": [
+          "覚えません"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア",
+          "アイース",
+          "ギガアイース",
+          "サンーダ",
+          "ギガサンーダ"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "ピヨルト",
+          "ドクルト"
+        ],
+        "recovery": [
+          "リフレシュ",
+          "チョーリフレシュ"
+        ]
+      }
+    },
+    {
+      "name": "ワル太",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 16,
+        "atk": 15,
+        "def": 8,
+        "spd": 14
+      },
+      "skills": {
+        "physical": [
+          "おしつぶし"
+        ],
+        "magic": [
+          "サンーダ",
+          "ギガサンーダ"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "シビルト"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "ゴーレム",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 11,
+        "atk": 16,
+        "def": 13,
+        "spd": 3
+      },
+      "skills": {
+        "physical": [
+          "ドリルスピン",
+          "おしつぶし"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア"
+        ],
+        "buff": [
+          "カチムキン",
+          "モード・バリア",
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "覚えません"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "グラゴン",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 25,
+        "atk": 26,
+        "def": 3,
+        "spd": 1
+      },
+      "skills": {
+        "physical": [
+          "するどいキバ",
+          "おしつぶし"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "覚えません"
+        ],
+        "recovery": [
+          "リフレシュ",
+          "チョーリフレシュ"
+        ]
+      }
+    },
+    {
+      "name": "スノードロップ",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 13,
+        "atk": 5,
+        "def": 7,
+        "spd": 13
+      },
+      "skills": {
+        "physical": [
+          "覚えません"
+        ],
+        "magic": [
+          "アイース",
+          "ギガアイース",
+          "サンーダ",
+          "ギガサンーダ"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "ピヨルト"
+        ],
+        "recovery": [
+          "リフレシュ",
+          "チョーリフレシュ"
+        ]
+      }
+    },
+    {
+      "name": "ユーベェ",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 9,
+        "atk": 14,
+        "def": 9,
+        "spd": 15
+      },
+      "skills": {
+        "physical": [
+          "覚えません"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア",
+          "サンーダ",
+          "ギガサンーダ"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "カナシバルト",
+          "シビルト"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "ベルチャ",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 12,
+        "atk": 13,
+        "def": 9,
+        "spd": 8
+      },
+      "skills": {
+        "physical": [
+          "するどいキバ"
+        ],
+        "magic": [
+          "サンーダ",
+          "ギガサンーダ"
+        ],
+        "buff": [
+          "カチムキン",
+          "モード・バリア",
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ズバズバン",
+          "ズドズドン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "シビルト"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "ガーディアン",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 14,
+        "atk": 14,
+        "def": 18,
+        "spd": 6
+      },
+      "skills": {
+        "physical": [
+          "ドリルスピン"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア"
+        ],
+        "buff": [
+          "モード・バリア",
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "カナシバルト",
+          "シビルト",
+          "ピヨルト",
+          "ドクルト"
+        ],
+        "recovery": [
+          "おやつのじかん",
+          "ぷるぷるカウンター",
+          "リフレシュ",
+          "チョーリフレシュ"
+        ]
+      }
+    },
+    {
+      "name": "アチャガラ",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 18,
+        "atk": 13,
+        "def": 8,
+        "spd": 11
+      },
+      "skills": {
+        "physical": [
+          "ドリルスピン"
+        ],
+        "magic": [
+          "サンーダ",
+          "ギガサンーダ"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ズバズバン",
+          "ズドズドン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "ピヨルト"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "フレクー",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 14,
+        "atk": 10,
+        "def": 10,
+        "spd": 7
+      },
+      "skills": {
+        "physical": [
+          "おしつぶし"
+        ],
+        "magic": [
+          "アイース",
+          "ギガアイース"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "シビルト"
+        ],
+        "recovery": [
+          "おやつのじかん"
+        ]
+      }
+    },
+    {
+      "name": "ライアード",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 15,
+        "atk": 14,
+        "def": 9,
+        "spd": 12
+      },
+      "skills": {
+        "physical": [
+          "だいちのいかり",
+          "ドリルスピン"
+        ],
+        "magic": [
+          "サンーダ",
+          "ギガサンーダ"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "ドクルト"
+        ],
+        "recovery": [
+          "リフレシュ",
+          "チョーリフレシュ"
+        ]
+      }
+    },
+    {
+      "name": "ルトペン",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 17,
+        "atk": 16,
+        "def": 4,
+        "spd": 3
+      },
+      "skills": {
+        "physical": [
+          "おしつぶし"
+        ],
+        "magic": [
+          "アイース",
+          "ギガアイース"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "ユルミノウタ",
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "ピヨルト"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "チューヘイさん",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 12,
+        "atk": 14,
+        "def": 6,
+        "spd": 13
+      },
+      "skills": {
+        "physical": [
+          "つきくずし",
+          "ドリルスピン"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ズバズバン",
+          "ズドズドン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "覚えません"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "アトラン",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 10,
+        "atk": 10,
+        "def": 5,
+        "spd": 5
+      },
+      "skills": {
+        "physical": [
+          "ガオガオスラッシュ",
+          "するどいキバ"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "覚えません"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "ヤミクマ",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 20,
+        "atk": 16,
+        "def": 12,
+        "spd": 7
+      },
+      "skills": {
+        "physical": [
+          "ナイトメーア",
+          "おしつぶし"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "ドクルト"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
+    },
+    {
+      "name": "ドラニャン",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 16,
+        "atk": 16,
+        "def": 10,
+        "spd": 8
+      },
+      "skills": {
+        "physical": [
+          "ニャンニャンドレイン",
+          "するどいキバ"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "ピヨルト"
+        ],
+        "recovery": []
+      }
+    },
+    {
+      "name": "プルドック",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 15,
+        "atk": 13,
+        "def": 1,
+        "spd": 16
+      },
+      "skills": {
+        "physical": [
+          "おしつぶし",
+          "ぷるぷるカウンター"
+        ],
+        "magic": [
+          "アイース",
+          "ギガアイース"
+        ],
+        "buff": [
+          "カチムキン",
+          "モード・バリア",
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ズバズバン",
+          "ズドズドン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ブレルト",
+          "ブレブレルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "シビルト"
+        ],
+        "recovery": [
+          "リフレシュ",
+          "チョーリフレシュ"
+        ]
+      }
+    },
+    {
+      "name": "モケマル",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 17,
+        "atk": 10,
+        "def": 7,
+        "spd": 10
+      },
+      "skills": {
+        "physical": [
+          "覚えません"
+        ],
+        "magic": [
+          "ハナカグラ",
+          "ファイーア",
+          "ギガファイーア",
+          "アイース",
+          "ギガアイース"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "ドクルト"
+        ],
+        "recovery": [
+          "リフレシュ",
+          "チョーリフレシュ"
+        ]
+      }
+    },
+    {
+      "name": "ミミロット",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 12,
+        "atk": 14,
+        "def": 7,
+        "spd": 33
+      },
+      "skills": {
+        "physical": [
+          "覚えません"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア",
+          "アイース",
+          "ギガアイース"
+        ],
+        "buff": [
+          "カチムキン",
+          "モード・バリア",
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ズバズバン",
+          "ズドズドン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "ダウナースロット",
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "シビルト"
+        ],
+        "recovery": []
+      }
+    },
+    {
+      "name": "アチポッチ",
+      "comment": "",
+      "image": "",
+      "stats": {
+        "hp": 15,
+        "atk": 18,
+        "def": 10,
+        "spd": 21
+      },
+      "skills": {
+        "physical": [
+          "ムシアッチ",
+          "するどいキバ",
+          "ドリルスピン"
+        ],
+        "magic": [
+          "ファイーア",
+          "ギガファイーア"
+        ],
+        "buff": [
+          "ムキムキン",
+          "バキバキン",
+          "カチコチン",
+          "ガチガチン",
+          "キビキビン",
+          "シュビシュビン",
+          "ピタピタン",
+          "バチバチン",
+          "ズバズバン",
+          "ズドズドン",
+          "フニャムキン",
+          "ポヨポヨン",
+          "ブヨブヨン",
+          "カシコイン",
+          "インテリン"
+        ],
+        "debuff": [
+          "じゃれアッチ",
+          "フニャルト",
+          "フニャフニャルト",
+          "シオルト",
+          "シオシオルト",
+          "オソルト",
+          "オソオソルト",
+          "ポヤルト",
+          "ポヤポヤルト",
+          "カサルト",
+          "カサカサルト"
+        ],
+        "status": [
+          "覚えません"
+        ],
+        "recovery": [
+          "覚えません"
+        ]
+      }
     }
-  }
-];
-
-function getAllSkills(m){
-  return CATEGORIES.flatMap(c => m.skills[c.key] || []);
+  ]
 }
-
-let openedMonster = null;
-function toggleMonster(i){
-  openedMonster = openedMonster === i ? null : i;
-  render();
-}
-function render(){
-  const word = document.getElementById("search").value.toLowerCase().trim();
-  const matches = monsters.map((m,i)=>({m,i})).filter(({m}) =>
-    !word || getAllSkills(m).some(s=>s.toLowerCase().includes(word)) || m.name.toLowerCase().includes(word)
-  );
-  let html = `<div class="result-count">該当するモンスター：${matches.length}体</div>`;
-  if(!matches.length){
-    document.getElementById("list").innerHTML = html + "<p>該当するモンスターがいません</p>";
-    return;
-  }
-  html += '<div class="monster-buttons">' + matches.map(({m,i}) =>
-    `<button class="monster-name-btn ${openedMonster===i?'active':''}" onclick="toggleMonster(${i})" aria-expanded="${openedMonster===i}">${escapeHtml(m.name)} ${openedMonster===i?'▲':'▼'}</button>`
-  ).join('') + '</div>';
-  if(matches.some(({i})=>i===openedMonster)){
-    const i=openedMonster, m=monsters[i];
-    let skillHtml = "";
-    CATEGORIES.forEach(cat => {
-      const list = m.skills[cat.key] || [];
-      if(!list.length) return;
-      skillHtml += `<div class="category ${cat.css}">${cat.label}</div><div class="skills">`;
-      skillHtml += list.map(s=>`<span class="skill">${escapeHtml(s)}</span>`).join("");
-      skillHtml += '</div>';
-    });
-    html += `<div class="card">
-      <h2>${escapeHtml(m.name)}</h2>
-      <div class="stats"><span>❤️HP ${m.stats.hp}</span><span>⚔️${m.stats.atk}</span><span>🛡️${m.stats.def}</span><span>💨${m.stats.spd}</span></div>
-      ${m.comment ? `<p>${escapeHtml(m.comment)}</p>` : ""}
-      ${skillHtml}
-      <button onclick="toggleEdit(${i})">✏️ 編集</button>
-      <button onclick="deleteMonster(${i})" style="background:#ffe8e8">🗑 削除</button>
-      <div id="edit-${i}" class="edit-area" style="display:none;"></div>
-    </div>`;
-  }
-  document.getElementById("list").innerHTML = html;
-}
-
-function addMonster(){
-  const newMonster = {
-    name: "新しいモンスター",
-    comment: "",
-    image: "",
-    stats: { hp:10, atk:10, def:5, spd:5 },
-    skills: cloneSkills()
-  };
-  monsters.push(newMonster);
-  saveData();
-  openedMonster = monsters.length - 1;
-  render();
-  // 追加直後に編集フォームを開く
-  setTimeout(() => toggleEdit(monsters.length - 1), 50);
-}
-
-function deleteMonster(i){
-  if(!confirm(`「${monsters[i].name}」を削除しますか？`)) return;
-  monsters.splice(i, 1);
-  openedMonster = null;
-  saveData();
-  render();
-}
-
-function toggleEdit(i){
-  const area = document.getElementById("edit-" + i);
-  if(!area) return;
-  if(area.style.display === "none"){
-    area.style.display = "block";
-    area.innerHTML = buildEditForm(i);
-  } else {
-    area.style.display = "none";
-  }
-}
-
-function buildEditForm(i){
-  const m = monsters[i];
-  let form = `
-    <div><label>名前<br><input id="name-${i}" value="${escapeHtml(m.name)}"></label></div>
-    <div><label>一言コメント<br><textarea id="comment-${i}">${escapeHtml(m.comment || "")}</textarea></label></div>
-    <div style="margin-top:8px;"><strong>ステータス</strong></div>
-    <div>HP <input type="number" id="hp-${i}" value="${m.stats.hp}" style="width:70px"> 
-         ATK <input type="number" id="atk-${i}" value="${m.stats.atk}" style="width:70px"> 
-         DEF <input type="number" id="def-${i}" value="${m.stats.def}" style="width:70px"> 
-         SPD <input type="number" id="spd-${i}" value="${m.stats.spd}" style="width:70px"></div>
-    <div style="margin-top:10px;"><strong>スキル編集</strong>（カンマ区切り）</div>
-  `;
-
-  CATEGORIES.forEach(cat => {
-    const current = (m.skills[cat.key] || []).join(", ");
-    form += `
-      <div style="margin:8px 0;">
-        <label><strong>${cat.label}</strong><br>
-          <textarea id="skill-${cat.key}-${i}">${escapeHtml(current)}</textarea>
-        </label>
-      </div>`;
-  });
-
-  form += `
-    <button onclick="saveMonster(${i})">💾 保存</button>
-    <button onclick="document.getElementById('edit-${i}').style.display='none'">キャンセル</button>
-  `;
-  return form;
-}
-
-function saveMonster(i){
-  const m = monsters[i];
-  m.name = document.getElementById("name-" + i).value.trim() || m.name;
-  m.comment = document.getElementById("comment-" + i).value;
-  m.stats.hp = Number(document.getElementById("hp-" + i).value) || 0;
-  m.stats.atk = Number(document.getElementById("atk-" + i).value) || 0;
-  m.stats.def = Number(document.getElementById("def-" + i).value) || 0;
-  m.stats.spd = Number(document.getElementById("spd-" + i).value) || 0;
-
-  CATEGORIES.forEach(cat => {
-    const raw = document.getElementById("skill-" + cat.key + "-" + i).value;
-    m.skills[cat.key] = raw.split(/[,、\n]/).map(s => s.trim()).filter(Boolean);
-  });
-
-  saveData();
-  render();
-  alert("保存しました");
-}
-
-function saveData(){
-  try{ localStorage.setItem("monsterdex_data", JSON.stringify(monsters)); }catch(e){}
-}
-
-function escapeHtml(str){
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-// 起動時に保存データがあれば読み込む
-try{
-  const saved = localStorage.getItem("monsterdex_data");
-  if(saved){
-    const parsed = JSON.parse(saved);
-    if(Array.isArray(parsed) && parsed.length) monsters = parsed;
-  }
-}catch(e){}
-
-render();
-</script>
-</body>
-</html>
