@@ -103,6 +103,10 @@ button{
   font:inherit;
 }
 .edit-area textarea{ min-height:60px; }
+ .monster-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 16px}
+ .monster-name-btn{background:#e8f0ff;border:1px solid #9ab7ef;color:#203d71;font-weight:700;padding:11px 17px}
+ .monster-name-btn.active{background:#4675c8;color:white}
+ .result-count{font-size:.9rem;color:#536173;margin:8px 0}
 </style>
 </head>
 <body>
@@ -113,7 +117,7 @@ button{
 
 <button class="add-btn" onclick="addMonster()">＋ モンスターを追加</button>
 
-<input id="search" placeholder="🔎 スキル名で検索" oninput="render()">
+<input id="search" placeholder="🔎 スキル名・モンスター名で検索" oninput="render()">
 
 <div id="list"></div>
 
@@ -124,7 +128,7 @@ const CATEGORIES = [
   { key: "buff",      label: "バフスキル",   css: "cat-buff" },
   { key: "debuff",    label: "デバフスキル", css: "cat-debuff" },
   { key: "status",    label: "状態異常",     css: "cat-status" },
-  { key: "recovery",  label: "回復・カウンター", css: "cat-recovery" }
+  { key: "recovery",  label: "回復", css: "cat-recovery" }
 ];
 
 // 全スキルのデフォルト一覧（新規追加時にコピーする）
@@ -193,44 +197,45 @@ function getAllSkills(m){
   return CATEGORIES.flatMap(c => m.skills[c.key] || []);
 }
 
+let openedMonster = null;
+function toggleMonster(i){
+  openedMonster = openedMonster === i ? null : i;
+  render();
+}
 function render(){
   const word = document.getElementById("search").value.toLowerCase().trim();
-  let html = "";
-
-  monsters.forEach((m, i) => {
-    const allSkills = getAllSkills(m);
-    const hit = word === "" || 
-                allSkills.some(s => s.toLowerCase().includes(word)) || 
-                m.name.toLowerCase().includes(word);
-    if(!hit) return;
-
+  const matches = monsters.map((m,i)=>({m,i})).filter(({m}) =>
+    !word || getAllSkills(m).some(s=>s.toLowerCase().includes(word)) || m.name.toLowerCase().includes(word)
+  );
+  let html = `<div class="result-count">該当するモンスター：${matches.length}体</div>`;
+  if(!matches.length){
+    document.getElementById("list").innerHTML = html + "<p>該当するモンスターがいません</p>";
+    return;
+  }
+  html += '<div class="monster-buttons">' + matches.map(({m,i}) =>
+    `<button class="monster-name-btn ${openedMonster===i?'active':''}" onclick="toggleMonster(${i})" aria-expanded="${openedMonster===i}">${escapeHtml(m.name)} ${openedMonster===i?'▲':'▼'}</button>`
+  ).join('') + '</div>';
+  if(matches.some(({i})=>i===openedMonster)){
+    const i=openedMonster, m=monsters[i];
     let skillHtml = "";
     CATEGORIES.forEach(cat => {
       const list = m.skills[cat.key] || [];
-      if(list.length === 0) return;
+      if(!list.length) return;
       skillHtml += `<div class="category ${cat.css}">${cat.label}</div><div class="skills">`;
-      skillHtml += list.map(s => `<span class="skill">${escapeHtml(s)}</span>`).join("");
-      skillHtml += `</div>`;
+      skillHtml += list.map(s=>`<span class="skill">${escapeHtml(s)}</span>`).join("");
+      skillHtml += '</div>';
     });
-
-    html += `
-<div class="card">
-  <h2>${escapeHtml(m.name)}</h2>
-  <div class="stats">
-    <span>❤️HP ${m.stats.hp}</span>
-    <span>⚔️${m.stats.atk}</span>
-    <span>🛡️${m.stats.def}</span>
-    <span>💨${m.stats.spd}</span>
-  </div>
-  ${m.comment ? `<p>${escapeHtml(m.comment)}</p>` : ""}
-  ${skillHtml}
-  <button onclick="toggleEdit(${i})">✏️ 編集</button>
-  <button onclick="deleteMonster(${i})" style="background:#ffe8e8">🗑 削除</button>
-  <div id="edit-${i}" class="edit-area" style="display:none;"></div>
-</div>`;
-  });
-
-  document.getElementById("list").innerHTML = html || "<p>該当するモンスターがいません</p>";
+    html += `<div class="card">
+      <h2>${escapeHtml(m.name)}</h2>
+      <div class="stats"><span>❤️HP ${m.stats.hp}</span><span>⚔️${m.stats.atk}</span><span>🛡️${m.stats.def}</span><span>💨${m.stats.spd}</span></div>
+      ${m.comment ? `<p>${escapeHtml(m.comment)}</p>` : ""}
+      ${skillHtml}
+      <button onclick="toggleEdit(${i})">✏️ 編集</button>
+      <button onclick="deleteMonster(${i})" style="background:#ffe8e8">🗑 削除</button>
+      <div id="edit-${i}" class="edit-area" style="display:none;"></div>
+    </div>`;
+  }
+  document.getElementById("list").innerHTML = html;
 }
 
 function addMonster(){
@@ -243,6 +248,7 @@ function addMonster(){
   };
   monsters.push(newMonster);
   saveData();
+  openedMonster = monsters.length - 1;
   render();
   // 追加直後に編集フォームを開く
   setTimeout(() => toggleEdit(monsters.length - 1), 50);
@@ -251,6 +257,7 @@ function addMonster(){
 function deleteMonster(i){
   if(!confirm(`「${monsters[i].name}」を削除しますか？`)) return;
   monsters.splice(i, 1);
+  openedMonster = null;
   saveData();
   render();
 }
@@ -321,10 +328,10 @@ function saveData(){
 
 function escapeHtml(str){
   return String(str)
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, """)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
@@ -341,4 +348,3 @@ render();
 </script>
 </body>
 </html>
-
