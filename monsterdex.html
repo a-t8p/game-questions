@@ -68,6 +68,12 @@ button{
   background:#fff;
   cursor:pointer;
 }
+.add-btn{
+  background:#e8ffe8;
+  border-color:#8bc88b;
+  font-weight:600;
+  padding:10px 16px;
+}
 .back-btn{
   display:inline-block;
   margin-bottom:12px;
@@ -105,6 +111,8 @@ button{
 
 <h1>📖 モンスター図鑑</h1>
 
+<button class="add-btn" onclick="addMonster()">＋ モンスターを追加</button>
+
 <input id="search" placeholder="🔎 スキル名で検索" oninput="render()">
 
 <div id="list"></div>
@@ -119,40 +127,51 @@ const CATEGORIES = [
   { key: "recovery",  label: "回復・カウンター", css: "cat-recovery" }
 ];
 
+// 全スキルのデフォルト一覧（新規追加時にコピーする）
+const DEFAULT_SKILLS = {
+  physical: [
+    "だいちのいかり", "つきくずし", "ガオガオスラッシュ", "ナイトメア",
+    "ニャンニャンドレイン", "ムシアッチ", "するどいキバ", "ドリルスピン", "おしつぶし"
+  ],
+  magic: [
+    "ハナカグラ", "ファイア", "ギガファイア", "アイース",
+    "ギガアイース", "サンダ", "ギガサンダ"
+  ],
+  buff: [
+    "カチムキン", "モード・バリア", "ムキムキン", "バキバキン", "カチコチン",
+    "ガチガチン", "キビキビン", "シュビシュビン", "ピタピタン", "バチバチン",
+    "ズバズバン", "ズドズドン", "フニャムキン", "ポヨポヨン", "プヨプヨン",
+    "カシコイン", "インテリン"
+  ],
+  debuff: [
+    "フニャリズム", "ユルミノウタ", "ダウナースロット", "じゃれアッチ",
+    "フニャルト", "フニャフニャルト", "シオルト", "シオシオルト",
+    "オソルト", "オソオソルト", "ブレルト", "ブレブレルト",
+    "ポヤルト", "ポヤポヤルト", "カサルト", "カサカサルト"
+  ],
+  status: [
+    "カナシバルト", "シビルト", "ピヨルト", "ドクルト"
+  ],
+  recovery: [
+    "おやつのじかん", "ぷるぷるカウンター", "リフレシュ", "チョーリフレシュ"
+  ]
+};
+
+function cloneSkills(){
+  const copy = {};
+  for(const key in DEFAULT_SKILLS){
+    copy[key] = [...DEFAULT_SKILLS[key]];
+  }
+  return copy;
+}
+
 let monsters = [
   {
     name: "スラポン",
     comment: "",
     image: "",
     stats: { hp:14, atk:12, def:6, spd:10 },
-    skills: {
-      physical: [
-        "だいちのいかり", "つきくずし", "ガオガオスラッシュ", "ナイトメア",
-        "ニャンニャンドレイン", "ムシアッチ", "するどいキバ", "ドリルスピン", "おしつぶし"
-      ],
-      magic: [
-        "ハナカグラ", "ファイア", "ギガファイア", "アイース",
-        "ギガアイース", "サンダ", "ギガサンダ"
-      ],
-      buff: [
-        "カチムキン", "モード・バリア", "ムキムキン", "バキバキン", "カチコチン",
-        "ガチガチン", "キビキビン", "シュビシュビン", "ピタピタン", "バチバチン",
-        "ズバズバン", "ズドズドン", "フニャムキン", "ポヨポヨン", "プヨプヨン",
-        "カシコイン", "インテリン"
-      ],
-      debuff: [
-        "フニャリズム", "ユルミノウタ", "ダウナースロット", "じゃれアッチ",
-        "フニャルト", "フニャフニャルト", "シオルト", "シオシオルト",
-        "オソルト", "オソオソルト", "ブレルト", "ブレブレルト",
-        "ポヤルト", "ポヤポヤルト", "カサルト", "カサカサルト"
-      ],
-      status: [
-        "カナシバルト", "シビルト", "ピヨルト", "ドクルト"
-      ],
-      recovery: [
-        "おやつのじかん", "ぷるぷるカウンター", "リフレシュ", "チョーリフレシュ"
-      ]
-    }
+    skills: cloneSkills()
   },
   {
     name: "オーク",
@@ -190,22 +209,23 @@ function render(){
       const list = m.skills[cat.key] || [];
       if(list.length === 0) return;
       skillHtml += `<div class="category ${cat.css}">${cat.label}</div><div class="skills">`;
-      skillHtml += list.map(s => `<span class="skill">${s}</span>`).join("");
+      skillHtml += list.map(s => `<span class="skill">${escapeHtml(s)}</span>`).join("");
       skillHtml += `</div>`;
     });
 
     html += `
 <div class="card">
-  <h2>${m.name}</h2>
+  <h2>${escapeHtml(m.name)}</h2>
   <div class="stats">
     <span>❤️HP ${m.stats.hp}</span>
     <span>⚔️${m.stats.atk}</span>
     <span>🛡️${m.stats.def}</span>
     <span>💨${m.stats.spd}</span>
   </div>
-  ${m.comment ? `<p>${m.comment}</p>` : ""}
+  ${m.comment ? `<p>${escapeHtml(m.comment)}</p>` : ""}
   ${skillHtml}
   <button onclick="toggleEdit(${i})">✏️ 編集</button>
+  <button onclick="deleteMonster(${i})" style="background:#ffe8e8">🗑 削除</button>
   <div id="edit-${i}" class="edit-area" style="display:none;"></div>
 </div>`;
   });
@@ -213,8 +233,31 @@ function render(){
   document.getElementById("list").innerHTML = html || "<p>該当するモンスターがいません</p>";
 }
 
+function addMonster(){
+  const newMonster = {
+    name: "新しいモンスター",
+    comment: "",
+    image: "",
+    stats: { hp:10, atk:10, def:5, spd:5 },
+    skills: cloneSkills()
+  };
+  monsters.push(newMonster);
+  saveData();
+  render();
+  // 追加直後に編集フォームを開く
+  setTimeout(() => toggleEdit(monsters.length - 1), 50);
+}
+
+function deleteMonster(i){
+  if(!confirm(`「${monsters[i].name}」を削除しますか？`)) return;
+  monsters.splice(i, 1);
+  saveData();
+  render();
+}
+
 function toggleEdit(i){
   const area = document.getElementById("edit-" + i);
+  if(!area) return;
   if(area.style.display === "none"){
     area.style.display = "block";
     area.innerHTML = buildEditForm(i);
@@ -267,13 +310,22 @@ function saveMonster(i){
     m.skills[cat.key] = raw.split(/[,、\n]/).map(s => s.trim()).filter(Boolean);
   });
 
-  try{ localStorage.setItem("monsterdex_data", JSON.stringify(monsters)); }catch(e){}
+  saveData();
   render();
   alert("保存しました");
 }
 
+function saveData(){
+  try{ localStorage.setItem("monsterdex_data", JSON.stringify(monsters)); }catch(e){}
+}
+
 function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g, s => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[s]));
+  return String(str)
+    .replace(/&/g, "&")
+    .replace(/</g, "<")
+    .replace(/>/g, ">")
+    .replace(/"/g, """)
+    .replace(/'/g, "&#39;");
 }
 
 // 起動時に保存データがあれば読み込む
