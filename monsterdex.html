@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>モンスター図鑑</title>
+ 
+<style>
+body{
+font-family:sans-serif;
+background:#f3f9f1;
+max-width:900px;
+margin:auto;
+padding:15px;
+}
+ 
+h1{
+text-align:center;
+}
+ 
+#search{
+width:100%;
+padding:10px;
+margin-bottom:15px;
+border-radius:8px;
+}
+ 
+.card{
+background:white;
+border-radius:12px;
+padding:12px;
+margin-bottom:12px;
+box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+ 
+.stats{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+margin:10px 0;
+}
+ 
+.skill{
+background:#eef;
+padding:5px 8px;
+margin:3px;
+border-radius:6px;
+display:inline-block;
+}
+ 
+button{
+margin:4px;
+padding:8px 12px;
+}
+</style>
+</head>
+ 
+<body>
+ 
+<h1>📖 モンスター図鑑</h1>
+ 
+<input
+id="search"
+placeholder="🔎 スキル検索"
+oninput="render()">
+ 
+<div id="list"></div>
+ 
+<script>
+ 
+let monsters = [
+ 
+{
+name:"スラポン",
+comment:"",
+image:"",
+stats:{
+hp:14,
+atk:12,
+def:6,
+spd:10
+},
+skills:[
+"おしつぶし",
+"アイース",
+"ギガアイース",
+"シビルト",
+"リフレシュ",
+"フョーリフレシュ"
+]
+},
+ 
+{
+name:"オーク",
+comment:"",
+image:"",
+stats:{
+hp:20,
+atk:18,
+def:4,
+spd:2
+},
+skills:[
+"するどいキバ",
+"おしつぶし",
+"サンダ",
+"ギガサンダ"
+]
+}
+ 
+];
+ 
+function render(){
+ 
+const word =
+document.getElementById("search")
+.value
+.toLowerCase();
+ 
+let html="";
+ 
+monsters.forEach((m,i)=>{
+ 
+const hit =
+word==="" ||
+m.skills.some(s =>
+s.toLowerCase()
+.includes(word));
+ 
+if(!hit) return;
+ 
+html += `
+<div class="card">
+ 
+<h2>${m.name}</h2>
+ 
+<div class="stats">
+<span>❤️HP ${m.stats.hp}</span>
+<span>⚔️${m.stats.atk}</span>
+<span>🛡️${m.stats.def}</span>
+<span>💨${m.stats.spd}</span>
+</div>
+ 
+<p>${m.comment}</p>
+ 
+<div>
+${m.skills.map(x =>
+`<span class="skill">${x}</span>`
+).join("")}
+</div>
+ 
+<button onclick="editMonster(${i})">
+✏️編集
+</button>
+ 
+</div>
+`;
+});
+ 
+document.getElementById("list")
+.innerHTML = html;
+}
+ 
+function editMonster(i){
+ 
+const name =
+prompt(
+"モンスター名",
+monsters[i].name
+);
+ 
+if(name!==null){
+monsters[i].name=name;
+}
+ 
+const comment =
+prompt(
+"一言コメント",
+monsters[i].comment
+);
+ 
+if(comment!==null){
+monsters[i].comment=comment;
+}
+ 
+render();
+}
+ 
+render();
+ 
+</script>
+ 
+</body>
+</html>
