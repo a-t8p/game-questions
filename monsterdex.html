@@ -4,191 +4,289 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>モンスター図鑑</title>
- 
 <style>
 body{
-font-family:sans-serif;
-background:#f3f9f1;
-max-width:900px;
-margin:auto;
-padding:15px;
+  font-family:sans-serif;
+  background:#f3f9f1;
+  max-width:960px;
+  margin:auto;
+  padding:15px;
 }
- 
-h1{
-text-align:center;
-}
- 
+h1{ text-align:center; margin-top:8px; }
 #search{
-width:100%;
-padding:10px;
-margin-bottom:15px;
-border-radius:8px;
+  width:100%;
+  padding:10px;
+  margin-bottom:15px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:16px;
 }
- 
 .card{
-background:white;
-border-radius:12px;
-padding:12px;
-margin-bottom:12px;
-box-shadow:0 2px 8px rgba(0,0,0,.15);
+  background:white;
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:14px;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
 }
- 
 .stats{
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-margin:10px 0;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:10px 0;
+  font-size:0.95rem;
 }
- 
+.category{
+  margin:12px 0 4px;
+  font-weight:700;
+  padding:6px 10px;
+  border-radius:8px;
+  color:#222;
+  font-size:0.95rem;
+}
+.cat-physical { background:#f5c6c6; }
+.cat-magic    { background:#e0b0ff; }
+.cat-buff     { background:#e6e6a0; }
+.cat-debuff   { background:#a8c8f0; }
+.cat-status   { background:#d0b0e8; }
+.cat-recovery { background:#b0e0b0; }
+.skills{
+  margin-bottom:6px;
+}
 .skill{
-background:#eef;
-padding:5px 8px;
-margin:3px;
-border-radius:6px;
-display:inline-block;
+  background:#eef;
+  padding:4px 8px;
+  margin:3px;
+  border-radius:6px;
+  display:inline-block;
+  font-size:0.9rem;
 }
- 
 button{
-margin:4px;
-padding:8px 12px;
+  margin:4px 4px 4px 0;
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid #aaa;
+  background:#fff;
+  cursor:pointer;
 }
+.back-btn{
+  display:inline-block;
+  margin-bottom:12px;
+  padding:10px 16px;
+  background:#e8f0ff;
+  border:1px solid #aeb8d0;
+  border-radius:10px;
+  text-decoration:none;
+  color:#202638;
+  font-weight:600;
+}
+.back-btn:hover{ background:#dce8ff; }
+.edit-area{
+  background:#f9f9f9;
+  border-radius:8px;
+  padding:10px;
+  margin-top:8px;
+  font-size:0.9rem;
+}
+.edit-area input, .edit-area textarea{
+  padding:6px;
+  margin:3px 0;
+  width:100%;
+  max-width:100%;
+  border-radius:6px;
+  border:1px solid #ccc;
+  font:inherit;
+}
+.edit-area textarea{ min-height:60px; }
 </style>
 </head>
- 
 <body>
- 
+
+<a class="back-btn" href="index.html">← 選択イベント一覧に戻る</a>
+
 <h1>📖 モンスター図鑑</h1>
- 
-<input
-id="search"
-placeholder="🔎 スキル検索"
-oninput="render()">
- 
+
+<input id="search" placeholder="🔎 スキル名で検索" oninput="render()">
+
 <div id="list"></div>
- 
+
 <script>
- 
-let monsters = [
- 
-{
-name:"スラポン",
-comment:"",
-image:"",
-stats:{
-hp:14,
-atk:12,
-def:6,
-spd:10
-},
-skills:[
-"おしつぶし",
-"アイース",
-"ギガアイース",
-"シビルト",
-"リフレシュ",
-"フョーリフレシュ"
-]
-},
- 
-{
-name:"オーク",
-comment:"",
-image:"",
-stats:{
-hp:20,
-atk:18,
-def:4,
-spd:2
-},
-skills:[
-"するどいキバ",
-"おしつぶし",
-"サンダ",
-"ギガサンダ"
-]
-}
- 
+const CATEGORIES = [
+  { key: "physical",  label: "物理攻撃",     css: "cat-physical" },
+  { key: "magic",     label: "魔法攻撃",     css: "cat-magic" },
+  { key: "buff",      label: "バフスキル",   css: "cat-buff" },
+  { key: "debuff",    label: "デバフスキル", css: "cat-debuff" },
+  { key: "status",    label: "状態異常",     css: "cat-status" },
+  { key: "recovery",  label: "回復・カウンター", css: "cat-recovery" }
 ];
- 
+
+let monsters = [
+  {
+    name: "スラポン",
+    comment: "",
+    image: "",
+    stats: { hp:14, atk:12, def:6, spd:10 },
+    skills: {
+      physical: [
+        "だいちのいかり", "つきくずし", "ガオガオスラッシュ", "ナイトメア",
+        "ニャンニャンドレイン", "ムシアッチ", "するどいキバ", "ドリルスピン", "おしつぶし"
+      ],
+      magic: [
+        "ハナカグラ", "ファイア", "ギガファイア", "アイース",
+        "ギガアイース", "サンダ", "ギガサンダ"
+      ],
+      buff: [
+        "カチムキン", "モード・バリア", "ムキムキン", "バキバキン", "カチコチン",
+        "ガチガチン", "キビキビン", "シュビシュビン", "ピタピタン", "バチバチン",
+        "ズバズバン", "ズドズドン", "フニャムキン", "ポヨポヨン", "プヨプヨン",
+        "カシコイン", "インテリン"
+      ],
+      debuff: [
+        "フニャリズム", "ユルミノウタ", "ダウナースロット", "じゃれアッチ",
+        "フニャルト", "フニャフニャルト", "シオルト", "シオシオルト",
+        "オソルト", "オソオソルト", "ブレルト", "ブレブレルト",
+        "ポヤルト", "ポヤポヤルト", "カサルト", "カサカサルト"
+      ],
+      status: [
+        "カナシバルト", "シビルト", "ピヨルト", "ドクルト"
+      ],
+      recovery: [
+        "おやつのじかん", "ぷるぷるカウンター", "リフレシュ", "チョーリフレシュ"
+      ]
+    }
+  },
+  {
+    name: "オーク",
+    comment: "",
+    image: "",
+    stats: { hp:20, atk:18, def:4, spd:2 },
+    skills: {
+      physical: ["するどいキバ", "おしつぶし"],
+      magic: ["サンダ", "ギガサンダ"],
+      buff: [],
+      debuff: [],
+      status: [],
+      recovery: []
+    }
+  }
+];
+
+function getAllSkills(m){
+  return CATEGORIES.flatMap(c => m.skills[c.key] || []);
+}
+
 function render(){
- 
-const word =
-document.getElementById("search")
-.value
-.toLowerCase();
- 
-let html="";
- 
-monsters.forEach((m,i)=>{
- 
-const hit =
-word==="" ||
-m.skills.some(s =>
-s.toLowerCase()
-.includes(word));
- 
-if(!hit) return;
- 
-html += `
+  const word = document.getElementById("search").value.toLowerCase().trim();
+  let html = "";
+
+  monsters.forEach((m, i) => {
+    const allSkills = getAllSkills(m);
+    const hit = word === "" || 
+                allSkills.some(s => s.toLowerCase().includes(word)) || 
+                m.name.toLowerCase().includes(word);
+    if(!hit) return;
+
+    let skillHtml = "";
+    CATEGORIES.forEach(cat => {
+      const list = m.skills[cat.key] || [];
+      if(list.length === 0) return;
+      skillHtml += `<div class="category ${cat.css}">${cat.label}</div><div class="skills">`;
+      skillHtml += list.map(s => `<span class="skill">${s}</span>`).join("");
+      skillHtml += `</div>`;
+    });
+
+    html += `
 <div class="card">
- 
-<h2>${m.name}</h2>
- 
-<div class="stats">
-<span>❤️HP ${m.stats.hp}</span>
-<span>⚔️${m.stats.atk}</span>
-<span>🛡️${m.stats.def}</span>
-<span>💨${m.stats.spd}</span>
-</div>
- 
-<p>${m.comment}</p>
- 
-<div>
-${m.skills.map(x =>
-`<span class="skill">${x}</span>`
-).join("")}
-</div>
- 
-<button onclick="editMonster(${i})">
-✏️編集
-</button>
- 
-</div>
-`;
-});
- 
-document.getElementById("list")
-.innerHTML = html;
+  <h2>${m.name}</h2>
+  <div class="stats">
+    <span>❤️HP ${m.stats.hp}</span>
+    <span>⚔️${m.stats.atk}</span>
+    <span>🛡️${m.stats.def}</span>
+    <span>💨${m.stats.spd}</span>
+  </div>
+  ${m.comment ? `<p>${m.comment}</p>` : ""}
+  ${skillHtml}
+  <button onclick="toggleEdit(${i})">✏️ 編集</button>
+  <div id="edit-${i}" class="edit-area" style="display:none;"></div>
+</div>`;
+  });
+
+  document.getElementById("list").innerHTML = html || "<p>該当するモンスターがいません</p>";
 }
- 
-function editMonster(i){
- 
-const name =
-prompt(
-"モンスター名",
-monsters[i].name
-);
- 
-if(name!==null){
-monsters[i].name=name;
+
+function toggleEdit(i){
+  const area = document.getElementById("edit-" + i);
+  if(area.style.display === "none"){
+    area.style.display = "block";
+    area.innerHTML = buildEditForm(i);
+  } else {
+    area.style.display = "none";
+  }
 }
- 
-const comment =
-prompt(
-"一言コメント",
-monsters[i].comment
-);
- 
-if(comment!==null){
-monsters[i].comment=comment;
+
+function buildEditForm(i){
+  const m = monsters[i];
+  let form = `
+    <div><label>名前<br><input id="name-${i}" value="${escapeHtml(m.name)}"></label></div>
+    <div><label>一言コメント<br><textarea id="comment-${i}">${escapeHtml(m.comment || "")}</textarea></label></div>
+    <div style="margin-top:8px;"><strong>ステータス</strong></div>
+    <div>HP <input type="number" id="hp-${i}" value="${m.stats.hp}" style="width:70px"> 
+         ATK <input type="number" id="atk-${i}" value="${m.stats.atk}" style="width:70px"> 
+         DEF <input type="number" id="def-${i}" value="${m.stats.def}" style="width:70px"> 
+         SPD <input type="number" id="spd-${i}" value="${m.stats.spd}" style="width:70px"></div>
+    <div style="margin-top:10px;"><strong>スキル編集</strong>（カンマ区切り）</div>
+  `;
+
+  CATEGORIES.forEach(cat => {
+    const current = (m.skills[cat.key] || []).join(", ");
+    form += `
+      <div style="margin:8px 0;">
+        <label><strong>${cat.label}</strong><br>
+          <textarea id="skill-${cat.key}-${i}">${escapeHtml(current)}</textarea>
+        </label>
+      </div>`;
+  });
+
+  form += `
+    <button onclick="saveMonster(${i})">💾 保存</button>
+    <button onclick="document.getElementById('edit-${i}').style.display='none'">キャンセル</button>
+  `;
+  return form;
 }
- 
+
+function saveMonster(i){
+  const m = monsters[i];
+  m.name = document.getElementById("name-" + i).value.trim() || m.name;
+  m.comment = document.getElementById("comment-" + i).value;
+  m.stats.hp = Number(document.getElementById("hp-" + i).value) || 0;
+  m.stats.atk = Number(document.getElementById("atk-" + i).value) || 0;
+  m.stats.def = Number(document.getElementById("def-" + i).value) || 0;
+  m.stats.spd = Number(document.getElementById("spd-" + i).value) || 0;
+
+  CATEGORIES.forEach(cat => {
+    const raw = document.getElementById("skill-" + cat.key + "-" + i).value;
+    m.skills[cat.key] = raw.split(/[,、\n]/).map(s => s.trim()).filter(Boolean);
+  });
+
+  try{ localStorage.setItem("monsterdex_data", JSON.stringify(monsters)); }catch(e){}
+  render();
+  alert("保存しました");
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[s]));
+}
+
+// 起動時に保存データがあれば読み込む
+try{
+  const saved = localStorage.getItem("monsterdex_data");
+  if(saved){
+    const parsed = JSON.parse(saved);
+    if(Array.isArray(parsed) && parsed.length) monsters = parsed;
+  }
+}catch(e){}
+
 render();
-}
- 
-render();
- 
 </script>
- 
 </body>
 </html>
+
