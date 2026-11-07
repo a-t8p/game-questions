@@ -1,1 +1,402 @@
-<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>試験シミュ</title></head><body><nav><a href="index.html">🏠ホーム</a> | <a href="monsterdex.html">📖図鑑</a> | <a href="suramon_exam_simulator.html">🧪試験</a></nav><h1>試験シミュレーター</h1><p>ここに計算機能を追加</p></body></html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>スラモン 試験報酬シミュレーター</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #2d1b4e;
+    color: #eee;
+  }
+  h1 { color: #e0aaff; text-align: center; }
+  .card {
+    background: #3d2a5c;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #5a3d7a;
+  }
+  .exam-section {
+    border: 1px solid #6a4d8a;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #4a3268;
+  }
+  .exam-section h3 { margin-top: 0; color: #e0aaff; }
+  .control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    flex-wrap: wrap;
+  }
+  .control button {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    background: #c084fc;
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    pointer-events: auto;
+    position: relative;
+    z-index: 1;
+  }
+  .yellow-btn {
+    background: #ffd700 !important;
+    color: #000 !important;
+    width: 60px !important;
+    height: 50px !important;
+    font-size: 16px !important;
+  }
+  .control .value {
+    font-size: 24px;
+    font-weight: bold;
+    min-width: 50px;
+    text-align: center;
+    color: #e0aaff;
+  }
+  .result {
+    margin-top: 10px;
+    padding: 12px;
+    background: #3a2758;
+    border-radius: 8px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    line-height: 1.5;
+    font-size: 14px;
+  }
+  .note { font-size: 0.85em; color: #ccc; margin-top: 10px; }
+</style>
+</head>
+<body>
+<h1>スラモン 試験報酬シミュレーター</h1>
+
+<div class="card">
+  <h2>試験前ステータス</h2>
+  <div class="control">
+    <span>HP</span>
+    <button onclick="changeBase('Hp', -1)">-</button>
+    <span class="value" id="baseHpDisplay">30</span>
+    <button onclick="changeBase('Hp', 1)">+</button>
+    <button onclick="changeBase('Hp', 5)">+5</button>
+    <input type="hidden" id="baseHp" value="30">
+  </div>
+  <div class="control">
+    <span>攻撃</span>
+    <button onclick="changeBase('Atk', -1)">-</button>
+    <span class="value" id="baseAtkDisplay">30</span>
+    <button onclick="changeBase('Atk', 1)">+</button>
+    <button onclick="changeBase('Atk', 5)">+5</button>
+    <input type="hidden" id="baseAtk" value="30">
+  </div>
+  <div class="control">
+    <span>守備</span>
+    <button onclick="changeBase('Def', -1)">-</button>
+    <span class="value" id="baseDefDisplay">30</span>
+    <button onclick="changeBase('Def', 1)">+</button>
+    <button onclick="changeBase('Def', 5)">+5</button>
+    <input type="hidden" id="baseDef" value="30">
+  </div>
+  <div class="control">
+    <span>素早さ</span>
+    <button onclick="changeBase('Spd', -1)">-</button>
+    <span class="value" id="baseSpdDisplay">30</span>
+    <button onclick="changeBase('Spd', 1)">+</button>
+    <button onclick="changeBase('Spd', 5)">+5</button>
+    <input type="hidden" id="baseSpd" value="30">
+  </div>
+</div>
+
+<div class="card">
+  <h2>加護Lv.（各0〜17）</h2>
+  <div class="control">
+    <span>❤️ 体力の加護</span>
+    <button onclick="changeKago('Hp', -1)">-</button>
+    <span class="value" id="kagoHpDisplay">8</span>
+    <button onclick="changeKago('Hp', 1)">+</button>
+    <button onclick="changeKago('Hp', 5)">+5</button>
+    <input type="hidden" id="kagoHp" value="8">
+  </div>
+  <div class="control">
+    <span>⚔️ 力の加護</span>
+    <button onclick="changeKago('Atk', -1)">-</button>
+    <span class="value" id="kagoAtkDisplay">8</span>
+    <button onclick="changeKago('Atk', 1)">+</button>
+    <button onclick="changeKago('Atk', 5)">+5</button>
+    <input type="hidden" id="kagoAtk" value="8">
+  </div>
+  <div class="control">
+    <span>🛡️ 守りの加護</span>
+    <button onclick="changeKago('Def', -1)">-</button>
+    <span class="value" id="kagoDefDisplay">8</span>
+    <button onclick="changeKago('Def', 1)">+</button>
+    <button onclick="changeKago('Def', 5)">+5</button>
+    <input type="hidden" id="kagoDef" value="8">
+  </div>
+  <div class="control">
+    <span>💨 速さの加護</span>
+    <button onclick="changeKago('Spd', -1)">-</button>
+    <span class="value" id="kagoSpdDisplay">8</span>
+    <button onclick="changeKago('Spd', 1)">+</button>
+    <button onclick="changeKago('Spd', 5)">+5</button>
+    <input type="hidden" id="kagoSpd" value="8">
+  </div>
+  <div id="kagoCost" class="result">コスト計算中...</div>
+</div>
+
+<div class="card">
+  <div class="exam-section">
+    <h3>一次試験 (vs ハカイオー)</h3>
+    <div class="control">
+      <span>悪魔祈り:</span>
+      <button onclick="changeExamLv('first', -1)">-</button>
+      <span class="value" id="firstLvDisplay">0</span>
+      <button onclick="changeExamLv('first', 1)">+</button>
+      <button onclick="changeExamLv('first', 5)">+5</button>
+      <input type="hidden" id="firstLv" value="0">
+    </div>
+    <div id="firstResult" class="result">計算中...</div>
+  </div>
+  <div class="exam-section">
+    <h3>二次試験 (vs ゴジョー)</h3>
+    <div class="control">
+      <span>悪魔祈り:</span>
+      <button onclick="changeExamLv('second', -1)">-</button>
+      <span class="value" id="secondLvDisplay">0</span>
+      <button onclick="changeExamLv('second', 1)">+</button>
+      <button onclick="changeExamLv('second', 5)">+5</button>
+      <input type="hidden" id="secondLv" value="0">
+    </div>
+    <div id="secondResult" class="result">計算中...</div>
+  </div>
+  <div class="exam-section">
+    <h3>最終試験 (vs クーゴ)</h3>
+    <div class="control">
+      <span>悪魔祈り:</span>
+      <button onclick="changeExamLv('final', -1)">-</button>
+      <span class="value" id="finalLvDisplay">0</span>
+      <button onclick="changeExamLv('final', 1)">+</button>
+      <button onclick="changeExamLv('final', 5)">+5</button>
+      <input type="hidden" id="finalLv" value="0">
+    </div>
+    <div id="finalResult" class="result">計算中...</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>↑設定 ＋ 心得（確率と戦闘力）</h2>
+  <div class="control">
+    <span>HP</span>
+    <button class="yellow-btn" onclick="changeUp('Hp', -1)">-</button>
+    <span class="value" id="upHpDisplay">0</span>
+    <button class="yellow-btn" onclick="changeUp('Hp', 1)">↑</button>
+    <button class="yellow-btn" onclick="changeUp('Hp', 2)">↑↑</button>
+    <button class="yellow-btn" onclick="setSkill('hpSkill', 1)">心得1</button>
+    <button class="yellow-btn" onclick="setSkill('hpSkill', 2)">心得2</button>
+    <button class="yellow-btn" onclick="setSkill('hpSkill', 3)">心得3</button>
+    <span class="value" id="hpSkillDisplay">0</span>
+    <input type="hidden" id="upHp" value="0">
+    <input type="hidden" id="hpSkill" value="0">
+  </div>
+  <div class="control">
+    <span>攻撃</span>
+    <button class="yellow-btn" onclick="changeUp('Atk', -1)">-</button>
+    <span class="value" id="upAtkDisplay">0</span>
+    <button class="yellow-btn" onclick="changeUp('Atk', 1)">↑</button>
+    <button class="yellow-btn" onclick="changeUp('Atk', 2)">↑↑</button>
+    <button class="yellow-btn" onclick="setSkill('atkSkill', 1)">心得1</button>
+    <button class="yellow-btn" onclick="setSkill('atkSkill', 2)">心得2</button>
+    <button class="yellow-btn" onclick="setSkill('atkSkill', 3)">心得3</button>
+    <span class="value" id="atkSkillDisplay">0</span>
+    <input type="hidden" id="upAtk" value="0">
+    <input type="hidden" id="atkSkill" value="0">
+  </div>
+  <div class="control">
+    <span>守備</span>
+    <button class="yellow-btn" onclick="changeUp('Def', -1)">-</button>
+    <span class="value" id="upDefDisplay">0</span>
+    <button class="yellow-btn" onclick="changeUp('Def', 1)">↑</button>
+    <button class="yellow-btn" onclick="changeUp('Def', 2)">↑↑</button>
+    <button class="yellow-btn" onclick="setSkill('defSkill', 1)">心得1</button>
+    <button class="yellow-btn" onclick="setSkill('defSkill', 2)">心得2</button>
+    <button class="yellow-btn" onclick="setSkill('defSkill', 3)">心得3</button>
+    <span class="value" id="defSkillDisplay">0</span>
+    <input type="hidden" id="upDef" value="0">
+    <input type="hidden" id="defSkill" value="0">
+  </div>
+  <div class="control">
+    <span>素早さ</span>
+    <button class="yellow-btn" onclick="changeUp('Spd', -1)">-</button>
+    <span class="value" id="upSpdDisplay">0</span>
+    <button class="yellow-btn" onclick="changeUp('Spd', 1)">↑</button>
+    <button class="yellow-btn" onclick="changeUp('Spd', 2)">↑↑</button>
+    <button class="yellow-btn" onclick="setSkill('spdSkill', 1)">心得1</button>
+    <button class="yellow-btn" onclick="setSkill('spdSkill', 2)">心得2</button>
+    <button class="yellow-btn" onclick="setSkill('spdSkill', 3)">心得3</button>
+    <span class="value" id="spdSkillDisplay">0</span>
+    <input type="hidden" id="upSpd" value="0">
+    <input type="hidden" id="spdSkill" value="0">
+  </div>
+</div>
+
+<div class="note">
+  ※ 試験前ステータスに試験報酬が加算されます<br>
+  ※ ↑の数で悪魔ボーナスの入り確率が変動します
+</div>
+
+<script>
+const exams = {
+  first: { name: "一次試験", mult: 1, base: [5,5,5,5], max: [22,22,22,22] },
+  second: { name: "二次試験", mult: 2, base: [7,7,7,7], max: [24,24,24,24] },
+  final: { name: "最終試験", mult: 3, base: [15,15,15,15], max: [32,32,32,32] }
+};
+const stats = ["HP", "攻撃", "守備", "素早さ"];
+
+function changeBase(type, delta) {
+  const id = "base" + type;
+  const displayId = id + "Display";
+  let val = parseInt(document.getElementById(id).value) || 0;
+  val = Math.max(0, Math.min(999, val + delta));
+  document.getElementById(id).value = val;
+  document.getElementById(displayId).textContent = val;
+  updateAll();
+}
+
+function changeUp(type, delta) {
+  const id = "up" + type;
+  const displayId = id + "Display";
+  let up = parseInt(document.getElementById(id).value) || 0;
+  up = Math.max(0, Math.min(3, up + delta));
+  document.getElementById(id).value = up;
+  document.getElementById(displayId).textContent = up;
+  updateAll();
+}
+
+function changeExamLv(stage, delta) {
+  const id = stage + "Lv";
+  const displayId = stage + "LvDisplay";
+  let lv = parseInt(document.getElementById(id).value) || 0;
+  lv = Math.max(0, Math.min(30, lv + delta));
+  document.getElementById(id).value = lv;
+  document.getElementById(displayId).textContent = lv;
+  updateAll();
+}
+
+function setSkill(id, level) {
+  document.getElementById(id).value = level;
+  document.getElementById(id + "Display").textContent = level;
+  updateAll();
+}
+
+function changeKago(type, delta) {
+  const id = "kago" + type;
+  const displayId = id + "Display";
+  let lv = parseInt(document.getElementById(id).value) || 0;
+  lv = Math.max(0, Math.min(17, lv + delta));
+  document.getElementById(id).value = lv;
+  document.getElementById(displayId).textContent = lv;
+  updateAll();
+}
+
+function getProbabilities() {
+  const ups = [
+    parseInt(document.getElementById("upHp").value) || 0,
+    parseInt(document.getElementById("upAtk").value) || 0,
+    parseInt(document.getElementById("upDef").value) || 0,
+    parseInt(document.getElementById("upSpd").value) || 0
+  ];
+  const weights = ups.map(u => {
+    if (u >= 3) return 50;
+    if (u === 2) return 30;
+    if (u === 1) return 15;
+    return 5;
+  });
+  const total = weights.reduce((a, b) => a + b, 0);
+  return weights.map(w => w / total);
+}
+
+const kagoCosts = [
+  0, 100, 500, 1000, 1500, 2000, 3000, 4000, 5000,
+  1, 2, 3, 4, 5, 6, 7, 8, 9
+];
+
+function calcKagoCost(lv) {
+  let gold = 0;
+  let kinburu = 0;
+  for (let i = 1; i <= lv; i++) {
+    if (i <= 8) gold += kagoCosts[i];
+    else kinburu += kagoCosts[i];
+  }
+  return { gold, kinburu };
+}
+
+function updateAll() {
+  const kago = [
+    parseInt(document.getElementById("kagoHp").value) || 0,
+    parseInt(document.getElementById("kagoAtk").value) || 0,
+    parseInt(document.getElementById("kagoDef").value) || 0,
+    parseInt(document.getElementById("kagoSpd").value) || 0
+  ];
+
+  let totalGold = 0;
+  let totalKin = 0;
+  const names = ["体力", "力", "守り", "速さ"];
+  let costText = "【加護コスト】\n";
+  kago.forEach((lv, i) => {
+    const c = calcKagoCost(lv);
+    totalGold += c.gold;
+    totalKin += c.kinburu;
+    costText += `${names[i]}: Lv.${lv} → ゴールド ${c.gold.toLocaleString()} / 金ぶる ${c.kinburu}\n`;
+  });
+  costText += `\n合計: ゴールド ${totalGold.toLocaleString()} / 金ぶる ${totalKin}`;
+  document.getElementById("kagoCost").textContent = costText;
+
+  const probs = getProbabilities();
+  const baseStatus = [
+    parseInt(document.getElementById("baseHp").value) || 30,
+    parseInt(document.getElementById("baseAtk").value) || 30,
+    parseInt(document.getElementById("baseDef").value) || 30,
+    parseInt(document.getElementById("baseSpd").value) || 30
+  ];
+
+  Object.keys(exams).forEach(key => {
+    const exam = exams[key];
+    const lv = parseInt(document.getElementById(key + "Lv").value) || 0;
+    const bonus = lv * exam.mult;
+    let text = `悪魔祈り ${lv} × ${exam.mult} = ボーナス ${bonus}\n\n`;
+    text += `【悪魔ボーナス振り分け確率】\n`;
+    const statusSum = [];
+    stats.forEach((s, i) => {
+      const kagoBonus = kago[i];
+      const totalIncrease = exam.base[i] + bonus + kagoBonus;
+      const cappedIncrease = Math.min(totalIncrease, exam.max[i] + kagoBonus);
+      const finalStatus = baseStatus[i] + cappedIncrease;
+      statusSum.push(finalStatus);
+      const pct = (probs[i] * 100).toFixed(1);
+      text += `  ${s}: ${pct}% で 最終 ${finalStatus} (+${cappedIncrease})\n`;
+    });
+
+    const hpSkill = parseInt(document.getElementById("hpSkill").value) || 0;
+    const atkSkill = parseInt(document.getElementById("atkSkill").value) || 0;
+    const defSkill = parseInt(document.getElementById("defSkill").value) || 0;
+    const spdSkill = parseInt(document.getElementById("spdSkill").value) || 0;
+    const skillBonus = hpSkill * 40 + atkSkill * 35 + defSkill * 25 + spdSkill * 20;
+
+    const statusTotal = statusSum.reduce((a, b) => a + b, 0);
+    const approxPower = Math.round(statusTotal * 1.50 + skillBonus);
+    text += `\n戦闘力概算: 約 ${approxPower}`;
+    document.getElementById(key + "Result").textContent = text;
+  });
+}
+
+updateAll();
+</script>
+</body>
+</html>
