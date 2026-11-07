@@ -77,7 +77,7 @@
 </head>
 <body>
 <div style="text-align:center; margin-bottom:16px;">
-  <a href="index.html" style="display:inline-block; padding:10px 20px; background:#c084fc; color:#000; text-decoration:none; border-radius:8px; font-weight:bold;">
+  <a href="../" style="display:inline-block; padding:10px 20px; background:#c084fc; color:#000; text-decoration:none; border-radius:8px; font-weight:bold;">
     ← 選択肢イベント一覧に戻る
   </a>
 </div>
