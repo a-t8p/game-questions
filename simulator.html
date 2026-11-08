@@ -114,6 +114,7 @@
     <button onclick="changeBase('Hp', 1)">+</button>
     <button onclick="changeBase('Hp', 5)">+5</button>
     <input type="hidden" id="baseHp" value="30">
+    <span style="margin-left:12px; color:#1a3a4a; font-size:14px;">→ ごほうび乗: <span id="baseHpWithBonus" style="font-weight:bold; color:#c084fc;">-</span></span>
   </div>
   <div class="control">
     <span>攻撃</span>
@@ -122,6 +123,7 @@
     <button onclick="changeBase('Atk', 1)">+</button>
     <button onclick="changeBase('Atk', 5)">+5</button>
     <input type="hidden" id="baseAtk" value="30">
+    <span style="margin-left:12px; color:#1a3a4a; font-size:14px;">→ ごほうび乗: <span id="baseAtkWithBonus" style="font-weight:bold; color:#c084fc;">-</span></span>
   </div>
   <div class="control">
     <span>守備</span>
@@ -130,6 +132,7 @@
     <button onclick="changeBase('Def', 1)">+</button>
     <button onclick="changeBase('Def', 5)">+5</button>
     <input type="hidden" id="baseDef" value="30">
+    <span style="margin-left:12px; color:#1a3a4a; font-size:14px;">→ ごほうび乗: <span id="baseDefWithBonus" style="font-weight:bold; color:#c084fc;">-</span></span>
   </div>
   <div class="control">
     <span>素早さ</span>
@@ -138,6 +141,7 @@
     <button onclick="changeBase('Spd', 1)">+</button>
     <button onclick="changeBase('Spd', 5)">+5</button>
     <input type="hidden" id="baseSpd" value="30">
+    <span style="margin-left:12px; color:#1a3a4a; font-size:14px;">→ ごほうび乗: <span id="baseSpdWithBonus" style="font-weight:bold; color:#c084fc;">-</span></span>
   </div>
 </div>
 
@@ -299,7 +303,29 @@ function syncBase(type) {
   val = Math.max(0, Math.min(999, val));
   display.value = val;
   hidden.value = val;
-  updateAll();
+  
+  // 試験前ステータスに、ごほうびが乗った場合の数値を表示
+  const currentExam = document.getElementById("firstLv") ? 
+    (parseInt(document.getElementById("firstLv").value) || 0) * (exams.first ? exams.first.mult : 1) : 0;
+  // 簡易表示用（現在選択中の試験のボーナスを使用）
+  ["Hp", "Atk", "Def", "Spd"].forEach((type, i) => {
+    const base = parseInt(document.getElementById("base" + type).value) || 30;
+    const kagoBonus = kago[i];
+    // 現在の試験ボーナス（簡易）
+    let bonus = 0;
+    if (document.getElementById("firstLv") && parseInt(document.getElementById("firstLv").value) > 0) {
+      bonus = parseInt(document.getElementById("firstLv").value) * exams.first.mult;
+    } else if (document.getElementById("secondLv") && parseInt(document.getElementById("secondLv").value) > 0) {
+      bonus = parseInt(document.getElementById("secondLv").value) * exams.second.mult;
+    } else if (document.getElementById("finalLv") && parseInt(document.getElementById("finalLv").value) > 0) {
+      bonus = parseInt(document.getElementById("finalLv").value) * exams.final.mult;
+    }
+    const withBonus = base + bonus + kagoBonus;
+    const el = document.getElementById("base" + type + "WithBonus");
+    if (el) el.textContent = withBonus;
+  });
+
+updateAll();
 }
 
 function changeBase(type, delta) {
@@ -407,7 +433,29 @@ function resetSkills() {
     const disp = document.getElementById(id + "Display");
     if (disp) disp.textContent = 0;
   });
-  updateAll();
+  
+  // 試験前ステータスに、ごほうびが乗った場合の数値を表示
+  const currentExam = document.getElementById("firstLv") ? 
+    (parseInt(document.getElementById("firstLv").value) || 0) * (exams.first ? exams.first.mult : 1) : 0;
+  // 簡易表示用（現在選択中の試験のボーナスを使用）
+  ["Hp", "Atk", "Def", "Spd"].forEach((type, i) => {
+    const base = parseInt(document.getElementById("base" + type).value) || 30;
+    const kagoBonus = kago[i];
+    // 現在の試験ボーナス（簡易）
+    let bonus = 0;
+    if (document.getElementById("firstLv") && parseInt(document.getElementById("firstLv").value) > 0) {
+      bonus = parseInt(document.getElementById("firstLv").value) * exams.first.mult;
+    } else if (document.getElementById("secondLv") && parseInt(document.getElementById("secondLv").value) > 0) {
+      bonus = parseInt(document.getElementById("secondLv").value) * exams.second.mult;
+    } else if (document.getElementById("finalLv") && parseInt(document.getElementById("finalLv").value) > 0) {
+      bonus = parseInt(document.getElementById("finalLv").value) * exams.final.mult;
+    }
+    const withBonus = base + bonus + kagoBonus;
+    const el = document.getElementById("base" + type + "WithBonus");
+    if (el) el.textContent = withBonus;
+  });
+
+updateAll();
 }
 
 function updateAll() {
@@ -444,17 +492,52 @@ function updateAll() {
     const lv = parseInt(document.getElementById(key + "Lv").value) || 0;
     const bonus = lv * exam.mult;
     let text = `悪魔祈り ${lv} × ${exam.mult} = ボーナス ${bonus}\n\n`;
-    text += `【悪魔ボーナス振り分け確率】\n`;
-    const statusSum = [];
+    
+    // どのステータスに乗っても同じなので1パターンだけ計算
+    const results = [];
+    const details = [];
     stats.forEach((s, i) => {
       const kagoBonus = kago[i];
-      const totalIncrease = exam.base[i] + bonus + kagoBonus;
-      const cappedIncrease = Math.min(totalIncrease, exam.max[i] + kagoBonus);
-      const finalStatus = baseStatus[i] + cappedIncrease;
-      statusSum.push(finalStatus);
-      const pct = (probs[i] * 100).toFixed(1);
-      text += `  ${s}: ${pct}% で 最終 ${finalStatus} (+${cappedIncrease})\n`;
+      const baseInc = Math.min(exam.base[i], exam.max[i]);
+      const demonBonus = bonus;  // 乗った場合
+      const totalInc = baseInc + demonBonus + kagoBonus;
+      const finalStat = baseStatus[i] + totalInc;
+      results.push(finalStat);
+      details.push(`<b style="color:#ffd700">${s}: ${finalStat}</b> (+基礎${baseInc}+ごほうび${demonBonus}+加護${kagoBonus})`);
     });
+    
+    // 乗らなかった場合の固定値
+    const fixedResults = [];
+    stats.forEach((s, i) => {
+      const kagoBonus = kago[i];
+      const baseInc = Math.min(exam.base[i], exam.max[i]);
+      const totalInc = baseInc + kagoBonus;
+      const finalStat = baseStatus[i] + totalInc;
+      fixedResults.push(finalStat);
+    });
+    
+    text += `<div style="margin:6px 0; padding:6px; background:#2d1f4a; border-radius:6px;">`;
+    text += `<b>悪魔祈りが乗ったステータス1種</b><br>`;
+    text += details.join("　") + "</div>\n";
+    
+    text += `<div style="margin:6px 0; padding:6px; background:#2d1f4a; border-radius:6px;">`;
+    text += `<b>乗らなかったステータス（固定）</b><br>`;
+    text += stats.map((s, i) => `${s}: ${fixedResults[i]} (+基礎${Math.min(exam.base[i], exam.max[i])}+加護${kago[i]})`).join("　") + "</div>\n";
+    
+    const statusResults = [results];  // 期待値計算用（1パターン）
+
+    // 試験前ステータス + 上昇分で戦闘力を計算
+    // 悪魔祈りは1ステータスに乗るので、期待値で上昇分を計算
+    const expectedIncrease = [0, 0, 0, 0];
+    stats.forEach((s, i) => {
+      const kagoBonus = kago[i];
+      const baseInc = Math.min(exam.base[i], exam.max[i]);
+      // 悪魔祈りが乗る確率 × ボーナス + 乗らない確率 × 0
+      const demonExpected = bonus * (1/4);  // 均等確率の場合
+      expectedIncrease[i] = baseInc + demonExpected + kagoBonus;
+    });
+    
+    const finalStatus = baseStatus.map((b, i) => b + expectedIncrease[i]);
 
     const hpSkill = parseInt(document.getElementById("hpSkill").value) || 0;
     const atkSkill = parseInt(document.getElementById("atkSkill").value) || 0;
@@ -462,14 +545,17 @@ function updateAll() {
     const spdSkill = parseInt(document.getElementById("spdSkill").value) || 0;
     const skillBonus = hpSkill * 40 + atkSkill * 35 + defSkill * 25 + spdSkill * 20;
 
-    const statusTotal = statusSum.reduce((a, b) => a + b, 0);
+    const statusTotal = finalStatus.reduce((a, b) => a + b, 0);
     const approxPower = Math.round(statusTotal * 1.50 + skillBonus);
-    text += `\n\n【戦闘力概算】 約 ${approxPower}`;
+    text += `\n\n<div style="background:#ffe4e6; padding:10px; border-radius:8px; margin-top:8px; color:#7c3aed;">`;
+    text += `<b>試験勝利時上昇したステータス</b><br>`;
+    text += finalStatus.map((v, i) => {
+      const inc = Math.round(v - baseStatus[i]);
+      return `${stats[i]}: ${Math.round(v)} (+${inc})`;
+    }).join("　");
+    text += `<br><span style="color:#7c3aed; font-weight:bold; font-size:1.1em;">＝※概算戦闘力 約 ${approxPower}＝</span></div>`;
     const resultEl = document.getElementById(key + "Result");
-    resultEl.innerHTML = text.replace(/\n/g, "<br>").replace(
-      /【戦闘力概算】 約 (\d+)/,
-      '<span style="color:#ffd700; font-weight:bold; font-size:1.2em; background:#3a2758; padding:4px 8px; border-radius:6px;">【戦闘力概算】 約 $1</span>'
-    );
+    resultEl.innerHTML = text.replace(/\n/g, "<br>");
   });
 }
 
