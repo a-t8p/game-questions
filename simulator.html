@@ -55,6 +55,13 @@
     height: 50px !important;
     font-size: 16px !important;
   }
+  .skill-btn {
+    background: #FFB500 !important;
+    color: #000 !important;
+    width: 60px !important;
+    height: 50px !important;
+    font-size: 16px !important;
+  }
   .control .value {
     font-size: 24px;
     font-weight: bold;
@@ -203,9 +210,9 @@
     <span class="value" id="upHpDisplay">0</span>
     <button class="yellow-btn" onclick="changeUp('Hp', 1)">↑</button>
     <button class="yellow-btn" onclick="changeUp('Hp', 2)">↑↑</button>
-    <button class="yellow-btn" onclick="setSkill('hpSkill', 1)">心得1</button>
-    <button class="yellow-btn" onclick="setSkill('hpSkill', 2)">心得2</button>
-    <button class="yellow-btn" onclick="setSkill('hpSkill', 3)">心得3</button>
+    <button class="skill-btn" onclick="setSkill('hpSkill', 1)">心得1</button>
+    <button class="skill-btn" onclick="setSkill('hpSkill', 2)">心得2</button>
+    <button class="skill-btn" onclick="setSkill('hpSkill', 3)">心得3</button>
     <span class="value" id="hpSkillDisplay">0</span>
     <input type="hidden" id="upHp" value="0">
     <input type="hidden" id="hpSkill" value="0">
@@ -216,9 +223,9 @@
     <span class="value" id="upAtkDisplay">0</span>
     <button class="yellow-btn" onclick="changeUp('Atk', 1)">↑</button>
     <button class="yellow-btn" onclick="changeUp('Atk', 2)">↑↑</button>
-    <button class="yellow-btn" onclick="setSkill('atkSkill', 1)">心得1</button>
-    <button class="yellow-btn" onclick="setSkill('atkSkill', 2)">心得2</button>
-    <button class="yellow-btn" onclick="setSkill('atkSkill', 3)">心得3</button>
+    <button class="skill-btn" onclick="setSkill('atkSkill', 1)">心得1</button>
+    <button class="skill-btn" onclick="setSkill('atkSkill', 2)">心得2</button>
+    <button class="skill-btn" onclick="setSkill('atkSkill', 3)">心得3</button>
     <span class="value" id="atkSkillDisplay">0</span>
     <input type="hidden" id="upAtk" value="0">
     <input type="hidden" id="atkSkill" value="0">
@@ -229,9 +236,9 @@
     <span class="value" id="upDefDisplay">0</span>
     <button class="yellow-btn" onclick="changeUp('Def', 1)">↑</button>
     <button class="yellow-btn" onclick="changeUp('Def', 2)">↑↑</button>
-    <button class="yellow-btn" onclick="setSkill('defSkill', 1)">心得1</button>
-    <button class="yellow-btn" onclick="setSkill('defSkill', 2)">心得2</button>
-    <button class="yellow-btn" onclick="setSkill('defSkill', 3)">心得3</button>
+    <button class="skill-btn" onclick="setSkill('defSkill', 1)">心得1</button>
+    <button class="skill-btn" onclick="setSkill('defSkill', 2)">心得2</button>
+    <button class="skill-btn" onclick="setSkill('defSkill', 3)">心得3</button>
     <span class="value" id="defSkillDisplay">0</span>
     <input type="hidden" id="upDef" value="0">
     <input type="hidden" id="defSkill" value="0">
@@ -242,12 +249,17 @@
     <span class="value" id="upSpdDisplay">0</span>
     <button class="yellow-btn" onclick="changeUp('Spd', 1)">↑</button>
     <button class="yellow-btn" onclick="changeUp('Spd', 2)">↑↑</button>
-    <button class="yellow-btn" onclick="setSkill('spdSkill', 1)">心得1</button>
-    <button class="yellow-btn" onclick="setSkill('spdSkill', 2)">心得2</button>
-    <button class="yellow-btn" onclick="setSkill('spdSkill', 3)">心得3</button>
+    <button class="skill-btn" onclick="setSkill('spdSkill', 1)">心得1</button>
+    <button class="skill-btn" onclick="setSkill('spdSkill', 2)">心得2</button>
+    <button class="skill-btn" onclick="setSkill('spdSkill', 3)">心得3</button>
     <span class="value" id="spdSkillDisplay">0</span>
     <input type="hidden" id="upSpd" value="0">
     <input type="hidden" id="spdSkill" value="0">
+  </div>
+  <div style="text-align:center; margin-top:12px;">
+    <button onclick="resetSkills()" style="background:#ff6b6b; color:#fff; padding:10px 20px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">
+      心得リセット
+    </button>
   </div>
 </div>
 
@@ -278,13 +290,33 @@ function changeUp(type, delta) {
   const id = "up" + type;
   const displayId = id + "Display";
   let up = parseInt(document.getElementById(id).value) || 0;
-  up = Math.max(0, Math.min(3, up + delta));
+  
+  // ↑と↑↑は重複しない（排他的に設定）
+  if (delta === 1) {
+    up = (up === 1) ? 0 : 1;  // トグル
+  } else if (delta === 2) {
+    up = (up === 2) ? 0 : 2;  // トグル
+  } else {
+    up = Math.max(0, up + delta);  // -1 の場合
+  }
+  
   document.getElementById(id).value = up;
   document.getElementById(displayId).textContent = up;
   updateAll();
 }
 
 function changeExamLv(stage, delta) {
+  const stages = ["first", "second", "final"];
+  
+  // 他の試練の悪魔祈りをリセット
+  stages.forEach(s => {
+    if (s !== stage) {
+      document.getElementById(s + "Lv").value = 0;
+      document.getElementById(s + "LvDisplay").textContent = 0;
+    }
+  });
+  
+  // 選択した試練を変更
   const id = stage + "Lv";
   const displayId = stage + "LvDisplay";
   let lv = parseInt(document.getElementById(id).value) || 0;
@@ -342,6 +374,16 @@ function calcKagoCost(lv) {
   return { gold, kinburu };
 }
 
+
+function resetSkills() {
+  ["hpSkill", "atkSkill", "defSkill", "spdSkill"].forEach(id => {
+    document.getElementById(id).value = 0;
+    const disp = document.getElementById(id + "Display");
+    if (disp) disp.textContent = 0;
+  });
+  updateAll();
+}
+
 function updateAll() {
   const kago = [
     parseInt(document.getElementById("kagoHp").value) || 0,
@@ -396,8 +438,12 @@ function updateAll() {
 
     const statusTotal = statusSum.reduce((a, b) => a + b, 0);
     const approxPower = Math.round(statusTotal * 1.50 + skillBonus);
-    text += `\n戦闘力概算: 約 ${approxPower}`;
-    document.getElementById(key + "Result").textContent = text;
+    text += `\n\n【戦闘力概算】 約 ${approxPower}`;
+    const resultEl = document.getElementById(key + "Result");
+    resultEl.innerHTML = text.replace(/\n/g, "<br>").replace(
+      /【戦闘力概算】 約 (\d+)/,
+      '<span style="color:#ffd700; font-weight:bold; font-size:1.2em; background:#3a2758; padding:4px 8px; border-radius:6px;">【戦闘力概算】 約 $1</span>'
+    );
   });
 }
 
