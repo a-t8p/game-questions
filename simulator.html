@@ -80,6 +80,21 @@
     font-size: 14px;
   }
   .note { font-size: 0.85em; color: #ccc; margin-top: 10px; }
+  .base-status {
+    background: #a8d8ea !important;
+    color: #1a3a4a !important;
+  }
+  .base-status h2 { color: #1a3a4a !important; }
+  .base-status .control button {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 20px !important;
+  }
+  .base-status .control input.value {
+    background: #e8f6fa !important;
+    color: #1a3a4a !important;
+    border-color: #7ec8e0 !important;
+  }
 </style>
 </head>
 <body>
@@ -90,12 +105,12 @@
 </div>
 <h1>スラモン 試験報酬シミュレーター</h1>
 
-<div class="card">
+<div class="card base-status">
   <h2>試験前ステータス</h2>
   <div class="control">
     <span>HP</span>
     <button onclick="changeBase('Hp', -1)">-</button>
-    <span class="value" id="baseHpDisplay">30</span>
+    <input type="number" class="value" id="baseHpDisplay" value="30" min="0" max="999" style="width:70px; text-align:center; font-size:24px; font-weight:bold; background:#3d2a5c; color:#e0aaff; border:1px solid #5a3d7a; border-radius:6px;" onchange="syncBase('Hp')">
     <button onclick="changeBase('Hp', 1)">+</button>
     <button onclick="changeBase('Hp', 5)">+5</button>
     <input type="hidden" id="baseHp" value="30">
@@ -103,7 +118,7 @@
   <div class="control">
     <span>攻撃</span>
     <button onclick="changeBase('Atk', -1)">-</button>
-    <span class="value" id="baseAtkDisplay">30</span>
+    <input type="number" class="value" id="baseAtkDisplay" value="30" min="0" max="999" style="width:70px; text-align:center; font-size:24px; font-weight:bold; background:#3d2a5c; color:#e0aaff; border:1px solid #5a3d7a; border-radius:6px;" onchange="syncBase('Atk')">
     <button onclick="changeBase('Atk', 1)">+</button>
     <button onclick="changeBase('Atk', 5)">+5</button>
     <input type="hidden" id="baseAtk" value="30">
@@ -111,7 +126,7 @@
   <div class="control">
     <span>守備</span>
     <button onclick="changeBase('Def', -1)">-</button>
-    <span class="value" id="baseDefDisplay">30</span>
+    <input type="number" class="value" id="baseDefDisplay" value="30" min="0" max="999" style="width:70px; text-align:center; font-size:24px; font-weight:bold; background:#3d2a5c; color:#e0aaff; border:1px solid #5a3d7a; border-radius:6px;" onchange="syncBase('Def')">
     <button onclick="changeBase('Def', 1)">+</button>
     <button onclick="changeBase('Def', 5)">+5</button>
     <input type="hidden" id="baseDef" value="30">
@@ -119,7 +134,7 @@
   <div class="control">
     <span>素早さ</span>
     <button onclick="changeBase('Spd', -1)">-</button>
-    <span class="value" id="baseSpdDisplay">30</span>
+    <input type="number" class="value" id="baseSpdDisplay" value="30" min="0" max="999" style="width:70px; text-align:center; font-size:24px; font-weight:bold; background:#3d2a5c; color:#e0aaff; border:1px solid #5a3d7a; border-radius:6px;" onchange="syncBase('Spd')">
     <button onclick="changeBase('Spd', 1)">+</button>
     <button onclick="changeBase('Spd', 5)">+5</button>
     <input type="hidden" id="baseSpd" value="30">
@@ -276,13 +291,24 @@ const exams = {
 };
 const stats = ["HP", "攻撃", "守備", "素早さ"];
 
+
+function syncBase(type) {
+  const display = document.getElementById("base" + type + "Display");
+  const hidden = document.getElementById("base" + type);
+  let val = parseInt(display.value) || 0;
+  val = Math.max(0, Math.min(999, val));
+  display.value = val;
+  hidden.value = val;
+  updateAll();
+}
+
 function changeBase(type, delta) {
   const id = "base" + type;
   const displayId = id + "Display";
   let val = parseInt(document.getElementById(id).value) || 0;
   val = Math.max(0, Math.min(999, val + delta));
   document.getElementById(id).value = val;
-  document.getElementById(displayId).textContent = val;
+  document.getElementById(displayId).value = val;
   updateAll();
 }
 
